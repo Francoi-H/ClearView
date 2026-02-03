@@ -1,9 +1,0 @@
-flask
-flask-cors
-torch
-torchvision
-transformers
-timm
-peft
-pillow
-huggingface_hub
