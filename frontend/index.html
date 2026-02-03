@@ -26,6 +26,21 @@
     </header>
 
     <main class="container main">
+      <section class="card intro-card">
+        <h2 class="card__title">About ClearView</h2>
+        <p class="card__subtitle">
+          ClearView uses deep learning to identify artifacts often left behind by generative AI models like Midjourney, DALL-E, and Stable Diffusion.
+        </p>
+        <div class="limitations-box">
+          <strong>Known Limitations:</strong>
+          <ul>
+            <li>Highly compressed or resized images may lose the "noise" our model looks for.</li>
+            <li>Images with heavy manual filters (Instagram/VSCO) can sometimes cause false positives.</li>
+            <li>This tool is for educational purposes and should not be used as a definitive forensic proof.</li>
+          </ul>
+        </div>
+      </section>
+
       <section class="card">
         <h2 class="card__title">Upload an image</h2>
         <p class="card__subtitle">
@@ -51,7 +66,8 @@
 
           <div class="actions">
             <button id="analyzeBtn" class="btn btn--primary" disabled>
-              Analyze
+              <span id="btnText">Analyze</span>
+              <div id="spinner" class="spinner" style="display: none;"></div>
             </button>
             <button id="resetBtn" class="btn btn--ghost" disabled>
               Reset
@@ -64,7 +80,7 @@
 
       <section class="card">
         <div class="resultHeader">
-          <h2 class="card__title">Result</h2>
+          <h2 class="card__title">Analysis Result</h2>
           <span id="badge" class="badge badge--neutral">No result</span>
         </div>
 
@@ -82,12 +98,13 @@
           <div class="resultItem">
             <div class="label">P(AI)</div>
             <div id="probability" class="value muted">—</div>
+            <div class="info-tag">Likelihood of AI class (0.0 to 1.0)</div>
           </div>
 
           <div class="resultItem resultItem--wide">
             <div class="label">Notes</div>
             <div id="notes" class="value muted">
-              Upload an image and click Analyze.
+              Upload an image and click Analyze to see findings.
             </div>
           </div>
         </div>
