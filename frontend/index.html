@@ -14,42 +14,31 @@
           <div class="brand__logo">CV</div>
           <div class="brand__text">
             <h1>ClearView</h1>
-            <p>AI image detection • research demo</p>
+            <p>AI image detection • simple demo UI</p>
           </div>
         </div>
+
+        <nav class="header__nav">
+          <a href="#" class="nav__link is-active">Detector</a>
+          <a href="#" class="nav__link">About</a>
+        </nav>
       </div>
     </header>
 
     <main class="container main">
-
-      <!-- INTRO -->
-      <section class="card">
-        <h2 class="card__title">What is ClearView?</h2>
-        <p class="card__subtitle">
-          ClearView is an experimental AI image detection tool designed to help
-          identify whether an image may have been generated or heavily altered by
-          artificial intelligence.
-        </p>
-        <p class="card__subtitle">
-          The system analyzes visual patterns learned from real and AI-generated
-          images and returns a probability score along with a human-readable prediction.
-        </p>
-      </section>
-
-      <!-- UPLOAD -->
       <section class="card">
         <h2 class="card__title">Upload an image</h2>
         <p class="card__subtitle">
-          Drag and drop an image or click to choose.
+          Drag and drop an image or click to choose. We’ll show a prediction and probability.
         </p>
 
-        <div id="dropzone" class="dropzone" tabindex="0">
+        <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Upload image">
           <input id="fileInput" class="dropzone__input" type="file" accept="image/*" />
           <div class="dropzone__content">
-            <div class="dropzone__icon">⬆️</div>
+            <div class="dropzone__icon" aria-hidden="true">⬆️</div>
             <div>
               <div class="dropzone__headline">Drop image here</div>
-              <div class="dropzone__hint">PNG, JPG, JPEG, WEBP</div>
+              <div class="dropzone__hint">PNG, JPG, JPEG, WEBP • up to ~10MB recommended</div>
             </div>
           </div>
         </div>
@@ -61,23 +50,25 @@
           </figure>
 
           <div class="actions">
-            <button id="analyzeBtn" class="btn btn--primary" disabled>Analyze</button>
-            <button id="resetBtn" class="btn btn--ghost" disabled>Reset</button>
+            <button id="analyzeBtn" class="btn btn--primary" disabled>
+              Analyze
+            </button>
+            <button id="resetBtn" class="btn btn--ghost" disabled>
+              Reset
+            </button>
 
-            <div id="status" class="status"></div>
-            <div id="spinner" class="spinner hidden"></div>
+            <div id="status" class="status" aria-live="polite"></div>
           </div>
         </div>
       </section>
 
-      <!-- RESULT -->
       <section class="card">
         <div class="resultHeader">
           <h2 class="card__title">Result</h2>
           <span id="badge" class="badge badge--neutral">No result</span>
         </div>
 
-        <div class="resultGrid">
+        <div id="result" class="resultGrid">
           <div class="resultItem">
             <div class="label">Prediction</div>
             <div id="prediction" class="value muted">—</div>
@@ -102,26 +93,11 @@
         </div>
       </section>
 
-      <!-- EXPLANATION -->
-      <section class="card">
-        <h2 class="card__title">How to read the results</h2>
-        <ul class="explainList">
-          <li><strong>P(AI)</strong> represents the model’s estimated probability (0–1) that an image is AI-generated.</li>
-          <li><strong>Confidence</strong> reflects how strongly the model supports the final prediction label.</li>
-          <li>A higher P(AI) indicates stronger evidence of AI generation.</li>
-        </ul>
-      </section>
-
-      <!-- LIMITATIONS -->
-      <section class="card">
-        <h2 class="card__title">Limitations</h2>
-        <p class="card__subtitle">
-          ClearView is intended for research and educational use only. Results may
-          be affected by image quality, compression, editing, or unseen AI models.
-          Predictions are not guaranteed.
+      <footer class="footer">
+        <p>
+          Tip: start by wiring your backend to respond on <code>/api/predict</code>.
         </p>
-      </section>
-
+      </footer>
     </main>
 
     <script src="app.js"></script>
