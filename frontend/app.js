@@ -6,6 +6,7 @@ const previewMeta = document.getElementById("previewMeta");
 const analyzeBtn = document.getElementById("analyzeBtn");
 const resetBtn = document.getElementById("resetBtn");
 const statusEl = document.getElementById("status");
+const btnText = document.getElementById("btnText");
 const spinner = document.getElementById("spinner");
 
 const badge = document.getElementById("badge");
@@ -16,8 +17,12 @@ const notesEl = document.getElementById("notes");
 
 let selectedFile = null;
 
-function setStatus(msg) {
+function setStatus(msg, kind = "info") {
   statusEl.textContent = msg || "";
+  statusEl.style.color =
+    kind === "error" ? "rgba(251,113,133,0.9)" :
+    kind === "ok" ? "rgba(45,212,191,0.9)" :
+    "rgba(255,255,255,0.68)";
 }
 
 function setResultEmpty() {
@@ -27,46 +32,76 @@ function setResultEmpty() {
   confidenceEl.textContent = "—";
   probabilityEl.textContent = "—";
   notesEl.textContent = "Upload an image and click Analyze.";
+
+  [predictionEl, confidenceEl, probabilityEl, notesEl].forEach(el => el.classList.add("muted"));
 }
 
 function setResult(data) {
-  predictionEl.textContent = data.prediction;
-  confidenceEl.textContent = `${data.confidence.toFixed(1)}%`;
-  probabilityEl.textContent = data.probability.toFixed(4);
+  const pred = data?.prediction ?? "—";
+  const conf = data?.confidence ?? null;
+  const pAi  = data?.probability ?? null;   
 
-  if (data.prediction.toLowerCase().includes("ai")) {
+  predictionEl.textContent = pred;
+  confidenceEl.textContent = (typeof conf === "number") ? `${conf.toFixed(1)}%` : "—";
+  probabilityEl.textContent = (typeof pAi === "number") ? pAi.toFixed(4) : "—";
+
+  [predictionEl, confidenceEl, probabilityEl, notesEl].forEach(el => el.classList.remove("muted"));
+
+  const predLower = String(pred).toLowerCase();
+  if (predLower.includes("ai")) {
     badge.className = "badge badge--ai";
     badge.textContent = "Likely AI";
-    notesEl.textContent = "Model indicates the image is likely AI-generated.";
-  } else {
+    notesEl.textContent = "Model score suggests this image is AI-generated or heavily altered.";
+  } else if (predLower.includes("real")) {
     badge.className = "badge badge--real";
     badge.textContent = "Likely Real";
-    notesEl.textContent = "Model indicates the image is likely real.";
+    notesEl.textContent = "Model score suggests this image looks like a real photo (not guaranteed).";
+  } else {
+    badge.className = "badge badge--neutral";
+    badge.textContent = "Result";
+    notesEl.textContent = "Received a result, but the prediction label was unexpected.";
   }
 }
 
 function showPreview(file) {
+  previewImg.style.display = "none";
+  previewMeta.textContent = "";
   const url = URL.createObjectURL(file);
   previewImg.src = url;
+  previewImg.onload = () => URL.revokeObjectURL(url);
   previewImg.style.display = "block";
   previewMeta.textContent = `${file.name} • ${(file.size / 1024).toFixed(1)} KB`;
 }
 
-dropzone.addEventListener("click", () => fileInput.click());
-
-fileInput.addEventListener("change", (e) => {
-  const file = e.target.files[0];
+function onFileSelected(file) {
   if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    setStatus("Please choose an image file (PNG/JPG/WEBP).", "error");
+    return;
+  }
   selectedFile = file;
   showPreview(file);
   analyzeBtn.disabled = false;
   resetBtn.disabled = false;
+  setStatus("Ready to analyze.", "ok");
   setResultEmpty();
+}
+
+dropzone.addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", (e) => onFileSelected(e.target.files?.[0]));
+
+dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("is-dragover"); });
+dropzone.addEventListener("dragleave", () => dropzone.classList.remove("is-dragover"));
+dropzone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropzone.classList.remove("is-dragover");
+  onFileSelected(e.dataTransfer.files?.[0]);
 });
 
 resetBtn.addEventListener("click", () => {
   selectedFile = null;
   fileInput.value = "";
+  previewImg.removeAttribute("src");
   previewImg.style.display = "none";
   previewMeta.textContent = "";
   analyzeBtn.disabled = true;
@@ -78,9 +113,11 @@ resetBtn.addEventListener("click", () => {
 analyzeBtn.addEventListener("click", async () => {
   if (!selectedFile) return;
 
+  // Set Loading UI
   analyzeBtn.disabled = true;
-  spinner.classList.remove("hidden");
-  setStatus("Analyzing…");
+  btnText.textContent = "Analyzing...";
+  spinner.style.display = "block";
+  setStatus("Analyzing…", "info");
 
   try {
     const form = new FormData();
@@ -91,14 +128,19 @@ analyzeBtn.addEventListener("click", async () => {
       body: form
     });
 
+    if (!res.ok) throw new Error(`Server error (${res.status})`);
+
     const data = await res.json();
     setResult(data);
-    setStatus("Done.");
+    setStatus("Done.", "ok");
   } catch (err) {
-    setStatus("Error analyzing image.");
+    console.error(err);
+    setStatus(err?.message || "Something went wrong.", "error");
   } finally {
-    spinner.classList.add("hidden");
+    // Reset Loading UI
     analyzeBtn.disabled = false;
+    btnText.textContent = "Analyze";
+    spinner.style.display = "none";
   }
 });
 
