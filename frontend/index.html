@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ClearView — AI Image Detector</title>
+    <title>ClearView — AI Image Detector & C2PA</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
 
@@ -14,46 +14,42 @@
           <div class="brand__logo">CV</div>
           <div class="brand__text">
             <h1>ClearView</h1>
-            <p>AI image detection • simple demo UI</p>
+            <p>Detection & Content Provenance</p>
           </div>
         </div>
-
         <nav class="header__nav">
           <a href="#" class="nav__link is-active">Detector</a>
-          <a href="#" class="nav__link">About</a>
+          <a href="#" class="nav__link">Verify C2PA</a>
         </nav>
       </div>
     </header>
 
     <main class="container main">
       <section class="card intro-card">
-        <h2 class="card__title">About ClearView</h2>
+        <h2 class="card__title">How it Works</h2>
         <p class="card__subtitle">
-          ClearView uses deep learning to identify artifacts often left behind by generative AI models like Midjourney, DALL-E, and Stable Diffusion.
+          ClearView combines deep-learning AI detection with <strong>C2PA Provenance</strong> technology. 
+          While the AI looks for pixel patterns, C2PA checks for secure digital signatures that verify an image's origin.
         </p>
         <div class="limitations-box">
-          <strong>Known Limitations:</strong>
+          <strong>Limitations:</strong>
           <ul>
-            <li>Highly compressed or resized images may lose the "noise" our model looks for.</li>
-            <li>Images with heavy manual filters (Instagram/VSCO) can sometimes cause false positives.</li>
-            <li>This tool is for educational purposes and should not be used as a definitive forensic proof.</li>
+            <li>AI detection is probabilistic; it can have false positives.</li>
+            <li>C2PA metadata is often stripped by social media platforms.</li>
+            <li>Lack of C2PA data does <em>not</em> automatically mean an image is fake.</li>
           </ul>
         </div>
       </section>
 
       <section class="card">
-        <h2 class="card__title">Upload an image</h2>
-        <p class="card__subtitle">
-          Drag and drop an image or click to choose. We’ll show a prediction and probability.
-        </p>
-
-        <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Upload image">
+        <h2 class="card__title">Analyze Image</h2>
+        <div id="dropzone" class="dropzone" role="button" tabindex="0">
           <input id="fileInput" class="dropzone__input" type="file" accept="image/*" />
           <div class="dropzone__content">
-            <div class="dropzone__icon" aria-hidden="true">⬆️</div>
+            <div class="dropzone__icon">⬆️</div>
             <div>
-              <div class="dropzone__headline">Drop image here</div>
-              <div class="dropzone__hint">PNG, JPG, JPEG, WEBP • up to ~10MB recommended</div>
+              <div class="dropzone__headline">Drop image to verify authenticity</div>
+              <div class="dropzone__hint">Supports C2PA-enabled JPEGs and PNGs</div>
             </div>
           </div>
         </div>
@@ -66,56 +62,55 @@
 
           <div class="actions">
             <button id="analyzeBtn" class="btn btn--primary" disabled>
-              <span id="btnText">Analyze</span>
-              <div id="spinner" class="spinner" style="display: none;"></div>
+              <div id="progressBar" class="btn__progress"></div>
+              <span id="btnText">Analyze & Verify</span>
             </button>
-            <button id="resetBtn" class="btn btn--ghost" disabled>
-              Reset
-            </button>
-
-            <div id="status" class="status" aria-live="polite"></div>
+            <button id="resetBtn" class="btn btn--ghost" disabled>Reset</button>
+            <div id="status" class="status"></div>
           </div>
         </div>
       </section>
 
-      <section class="card">
-        <div class="resultHeader">
-          <h2 class="card__title">Analysis Result</h2>
-          <span id="badge" class="badge badge--neutral">No result</span>
-        </div>
-
-        <div id="result" class="resultGrid">
-          <div class="resultItem">
-            <div class="label">Prediction</div>
-            <div id="prediction" class="value muted">—</div>
+      <div class="results-layout">
+        <section class="card">
+          <div class="resultHeader">
+            <h2 class="card__title">AI Analysis</h2>
+            <span id="badge" class="badge badge--neutral">No result</span>
           </div>
-
-          <div class="resultItem">
-            <div class="label">Confidence</div>
-            <div id="confidence" class="value muted">—</div>
-          </div>
-
-          <div class="resultItem">
-            <div class="label">P(AI)</div>
-            <div id="probability" class="value muted">—</div>
-            <div class="info-tag">Likelihood of AI class (0.0 to 1.0)</div>
-          </div>
-
-          <div class="resultItem resultItem--wide">
-            <div class="label">Notes</div>
-            <div id="notes" class="value muted">
-              Upload an image and click Analyze to see findings.
+          <div class="resultGrid">
+            <div class="resultItem">
+              <div class="label">P(AI) Score</div>
+              <div id="probability" class="value muted">—</div>
+              <div class="info-tag">Probability image is AI (0 to 1)</div>
+            </div>
+            <div class="resultItem">
+              <div class="label">Confidence</div>
+              <div id="confidence" class="value muted">—</div>
+            </div>
+            <div class="resultItem resultItem--wide">
+              <div class="label">Notes</div>
+              <div id="notes" class="value muted">Results will appear after analysis.</div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <footer class="footer">
-        <p>
-          Tip: start by wiring your backend to respond on <code>/api/predict</code>.
-        </p>
-      </footer>
+        <section class="card provenance-card">
+          <div class="resultHeader">
+            <h2 class="card__title">Content Provenance (C2PA)</h2>
+            <span id="c2paBadge" class="badge badge--neutral">Not Checked</span>
+          </div>
+          <div class="provenance-list" id="c2paData">
+            <p class="muted" style="font-size: 13px; margin-top: 10px;">
+              Looking for secure manifest signatures...
+            </p>
+          </div>
+        </section>
+      </div>
     </main>
+
+    <footer class="footer">
+      <p>Powered by C2PA Python Open Source & Neural Networks</p>
+    </footer>
 
     <script src="app.js"></script>
   </body>
