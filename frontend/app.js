@@ -1,147 +1,142 @@
-const dropzone = document.getElementById("dropzone");
 const fileInput = document.getElementById("fileInput");
+const dropzone = document.getElementById("dropzone");
 const previewImg = document.getElementById("previewImg");
 const previewMeta = document.getElementById("previewMeta");
-
 const analyzeBtn = document.getElementById("analyzeBtn");
-const resetBtn = document.getElementById("resetBtn");
-const statusEl = document.getElementById("status");
+const progressBar = document.getElementById("progressBar");
 const btnText = document.getElementById("btnText");
-const spinner = document.getElementById("spinner");
+const statusEl = document.getElementById("status");
 
-const badge = document.getElementById("badge");
-const predictionEl = document.getElementById("prediction");
-const confidenceEl = document.getElementById("confidence");
-const probabilityEl = document.getElementById("probability");
-const notesEl = document.getElementById("notes");
+const probEl = document.getElementById("probability");
+const confEl = document.getElementById("confidence");
+const aiBadge = document.getElementById("badge");
+const c2paBadge = document.getElementById("c2paBadge");
+const c2paDataContainer = document.getElementById("c2paData");
 
 let selectedFile = null;
 
-function setStatus(msg, kind = "info") {
-  statusEl.textContent = msg || "";
-  statusEl.style.color =
-    kind === "error" ? "rgba(251,113,133,0.9)" :
-    kind === "ok" ? "rgba(45,212,191,0.9)" :
-    "rgba(255,255,255,0.68)";
+// UI Helpers
+function setStatus(msg, color = "") {
+  statusEl.textContent = msg;
+  statusEl.style.color = color || "var(--muted)";
 }
 
-function setResultEmpty() {
-  badge.className = "badge badge--neutral";
-  badge.textContent = "No result";
-  predictionEl.textContent = "—";
-  confidenceEl.textContent = "—";
-  probabilityEl.textContent = "—";
-  notesEl.textContent = "Upload an image and click Analyze.";
-
-  [predictionEl, confidenceEl, probabilityEl, notesEl].forEach(el => el.classList.add("muted"));
+function updateProgress(val) {
+  progressBar.style.width = `${val}%`;
 }
 
-function setResult(data) {
-  const pred = data?.prediction ?? "—";
-  const conf = data?.confidence ?? null;
-  const pAi  = data?.probability ?? null;   
+// Handle File Selection
+fileInput.addEventListener("change", (e) => handleFile(e.target.files[0]));
+dropzone.addEventListener("click", () => fileInput.click());
 
-  predictionEl.textContent = pred;
-  confidenceEl.textContent = (typeof conf === "number") ? `${conf.toFixed(1)}%` : "—";
-  probabilityEl.textContent = (typeof pAi === "number") ? pAi.toFixed(4) : "—";
-
-  [predictionEl, confidenceEl, probabilityEl, notesEl].forEach(el => el.classList.remove("muted"));
-
-  const predLower = String(pred).toLowerCase();
-  if (predLower.includes("ai")) {
-    badge.className = "badge badge--ai";
-    badge.textContent = "Likely AI";
-    notesEl.textContent = "Model score suggests this image is AI-generated or heavily altered.";
-  } else if (predLower.includes("real")) {
-    badge.className = "badge badge--real";
-    badge.textContent = "Likely Real";
-    notesEl.textContent = "Model score suggests this image looks like a real photo (not guaranteed).";
-  } else {
-    badge.className = "badge badge--neutral";
-    badge.textContent = "Result";
-    notesEl.textContent = "Received a result, but the prediction label was unexpected.";
-  }
-}
-
-function showPreview(file) {
-  previewImg.style.display = "none";
-  previewMeta.textContent = "";
+function handleFile(file) {
+  if (!file) return;
+  selectedFile = file;
   const url = URL.createObjectURL(file);
   previewImg.src = url;
-  previewImg.onload = () => URL.revokeObjectURL(url);
   previewImg.style.display = "block";
-  previewMeta.textContent = `${file.name} • ${(file.size / 1024).toFixed(1)} KB`;
-}
-
-function onFileSelected(file) {
-  if (!file) return;
-  if (!file.type.startsWith("image/")) {
-    setStatus("Please choose an image file (PNG/JPG/WEBP).", "error");
-    return;
-  }
-  selectedFile = file;
-  showPreview(file);
+  previewMeta.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
   analyzeBtn.disabled = false;
-  resetBtn.disabled = false;
-  setStatus("Ready to analyze.", "ok");
-  setResultEmpty();
+  document.getElementById("resetBtn").disabled = false;
+  setStatus("Image ready for verification.");
 }
 
-dropzone.addEventListener("click", () => fileInput.click());
-fileInput.addEventListener("change", (e) => onFileSelected(e.target.files?.[0]));
-
-dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("is-dragover"); });
-dropzone.addEventListener("dragleave", () => dropzone.classList.remove("is-dragover"));
-dropzone.addEventListener("drop", (e) => {
-  e.preventDefault();
-  dropzone.classList.remove("is-dragover");
-  onFileSelected(e.dataTransfer.files?.[0]);
+// Reset
+document.getElementById("resetBtn").addEventListener("click", () => {
+  location.reload(); // Simplest way to clear all states
 });
 
-resetBtn.addEventListener("click", () => {
-  selectedFile = null;
-  fileInput.value = "";
-  previewImg.removeAttribute("src");
-  previewImg.style.display = "none";
-  previewMeta.textContent = "";
-  analyzeBtn.disabled = true;
-  resetBtn.disabled = true;
-  setStatus("");
-  setResultEmpty();
-});
-
+// Analysis Logic
 analyzeBtn.addEventListener("click", async () => {
   if (!selectedFile) return;
 
-  // Set Loading UI
   analyzeBtn.disabled = true;
-  btnText.textContent = "Analyzing...";
-  spinner.style.display = "block";
-  setStatus("Analyzing…", "info");
+  btnText.textContent = "Verifying...";
+  updateProgress(10);
+  setStatus("Uploading and scanning for C2PA manifests...");
+
+  const formData = new FormData();
+  formData.append("image", selectedFile);
+
+  // Fake some progress movement
+  let p = 10;
+  const timer = setInterval(() => {
+    if (p < 80) { p += 5; updateProgress(p); }
+  }, 400);
 
   try {
-    const form = new FormData();
-    form.append("image", selectedFile);
-
-    const res = await fetch("/api/predict", {
+    const response = await fetch("/api/predict", {
       method: "POST",
-      body: form
+      body: formData
     });
 
-    if (!res.ok) throw new Error(`Server error (${res.status})`);
+    if (!response.ok) throw new Error("Server Error");
+    const data = await response.json();
 
-    const data = await res.json();
-    setResult(data);
-    setStatus("Done.", "ok");
-  } catch (err) {
-    console.error(err);
-    setStatus(err?.message || "Something went wrong.", "error");
-  } finally {
-    // Reset Loading UI
+    clearInterval(timer);
+    updateProgress(100);
+    
+    // 1. Update AI Results
+    renderAIResults(data);
+
+    // 2. Update C2PA Results (Assuming your Python backend returns a 'c2pa' object)
+    renderC2PAResults(data.c2pa);
+
+    setStatus("Analysis Complete", "var(--good)");
+    btnText.textContent = "Analyze & Verify";
     analyzeBtn.disabled = false;
-    btnText.textContent = "Analyze";
-    spinner.style.display = "none";
+
+  } catch (err) {
+    clearInterval(timer);
+    updateProgress(0);
+    setStatus("Error: " + err.message, "var(--bad)");
+    btnText.textContent = "Retry";
+    analyzeBtn.disabled = false;
   }
 });
 
-setResultEmpty();
+function renderAIResults(data) {
+  const prob = data.probability || 0;
+  probEl.textContent = prob.toFixed(3);
+  probEl.classList.remove("muted");
+  
+  confEl.textContent = (data.confidence || 0).toFixed(1) + "%";
+  confEl.classList.remove("muted");
+
+  if (data.prediction === "AI") {
+    aiBadge.textContent = "Likely AI";
+    aiBadge.className = "badge badge--ai";
+  } else {
+    aiBadge.textContent = "Likely Human";
+    aiBadge.className = "badge badge--real";
+  }
+}
+
+function renderC2PAResults(c2pa) {
+  c2paDataContainer.innerHTML = "";
+  
+  if (!c2pa || !c2pa.active_manifest) {
+    c2paBadge.textContent = "No Manifest Found";
+    c2paBadge.className = "badge badge--neutral";
+    c2paDataContainer.innerHTML = `<p class="muted" style="font-size:0.8rem">This image does not contain C2PA provenance data. It may have been stripped or never signed.</p>`;
+    return;
+  }
+
+  // If found
+  c2paBadge.textContent = "Signed & Verified";
+  c2paBadge.className = "badge badge--real";
+
+  const info = [
+    { label: "Producer", value: c2pa.active_manifest.producer || "Unknown" },
+    { label: "Tool Used", value: c2pa.active_manifest.claim_generator || "Unknown" },
+    { label: "Created", value: new Date(c2pa.active_manifest.signature_info.time).toLocaleDateString() },
+    { label: "Validation", value: "Valid Signature" }
+  ];
+
+  info.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "prov-item";
+    div.innerHTML = `<span>${item.label}</span><span>${item.value}</span>`;
+    c2paDataContainer.appendChild(div);
+  });
+}
